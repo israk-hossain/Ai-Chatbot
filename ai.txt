@@ -1,0 +1,82 @@
+// Function to send a query to the Dialogflow API (Google Gemini API can be used in a similar way)
+async function getGoogleResponse(userInput) {
+    // Google API endpoint URL
+    const apiUrl = "https://dialogflow.googleapis.com/v2/projects/your-project-id/agent/sessions/your-session-id:detectIntent";
+    
+    // Google Cloud service authentication (make sure to replace the token with your API key)
+    const apiKey = "AIzaSyD-lE-cktkiSDEat9FQWvR3WlVl6MC2B8o"; // Add your API key here
+
+    const requestPayload = {
+        queryInput: {
+            text: {
+                text: userInput,
+                languageCode: 'en'
+            }
+        }
+    };
+
+    const response = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}` // Replace with OAuth token or service key
+        },
+        body: JSON.stringify(requestPayload)
+    });
+
+    const data = await response.json();
+
+    // Assuming the response structure is Dialogflow specific
+    if (data.queryResult && data.queryResult.fulfillmentText) {
+        return data.queryResult.fulfillmentText;
+    } else {
+        return "Sorry, I couldn't understand that. Can you please rephrase?";
+    }
+}
+
+// Function to handle text-to-speech with a female voice
+function speakText(text) {
+    if ('speechSynthesis' in window) {
+        let utterance = new SpeechSynthesisUtterance(text);
+        let voices = window.speechSynthesis.getVoices();
+        let femaleVoice = voices.find(voice => voice.name.toLowerCase().includes('female'));
+        if (femaleVoice) {
+            utterance.voice = femaleVoice;
+        }
+        utterance.pitch = 1;
+        utterance.rate = 1;
+        window.speechSynthesis.speak(utterance);
+    } else {
+        console.log("Speech Synthesis API not supported in this browser.");
+    }
+}
+
+// Event listener for sending user input
+document.getElementById('send-prompt-btn').addEventListener('click', async function () {
+    const promptInput = document.querySelector('.prompt-input');
+    const promptText = promptInput.value.trim();
+
+    if (promptText) {
+        // Display user input
+        const chatContainer = document.querySelector('.chats-container');
+        const userChat = document.createElement('div');
+        userChat.classList.add('chat');
+        userChat.innerHTML = `<p><strong>You:</strong> ${promptText}</p>`;
+        chatContainer.appendChild(userChat);
+
+        // Get chatbot response using Google API
+        const chatbotResponse = await getGoogleResponse(promptText);
+
+        // Display chatbot response
+        const botChat = document.createElement('div');
+        botChat.classList.add('chat');
+        botChat.innerHTML = `<p><strong>Nixxion:</strong> ${chatbotResponse}</p>`;
+        chatContainer.appendChild(botChat);
+
+        // Speak the chatbot's response
+        speakText(chatbotResponse);
+
+        // Clear input field
+        promptInput.value = '';
+    }
+});
